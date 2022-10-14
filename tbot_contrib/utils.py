@@ -141,8 +141,9 @@ _HASHCMP_TOOLS = [
     "crc32",
 ]
 
+_HASHCMP_CACHE: typing.Dict[typing.Tuple[str, str], typing.Union[bool, str]] = {}
 
-def hashcmp(a: linux.Path, b: linux.Path) -> bool:
+def hashcmp(a: linux.Path, b: linux.Path, use_cache: bool = False) -> bool:
     """
     Compare the hashsum of two files (potentially from different hosts).
 
@@ -153,20 +154,18 @@ def hashcmp(a: linux.Path, b: linux.Path) -> bool:
 
     .. versionadded:: 0.9.2
     """
-    if not a.exists() or not b.exists():
-        # Short-circuit if one of the files is missing.
-        return False
-
     for tool in _HASHCMP_TOOLS:
         if shell.check_for_tool(a.host, tool) and shell.check_for_tool(b.host, tool):
             break
     else:
         raise Exception("No suitable hashing tool found which exists on both hosts!")
 
-    sum_a: str = a.host.exec0(tool, a).split()[0]
-    sum_b: str = b.host.exec0(tool, b).split()[0]
+    if not use_cache or (str(a), tool) not in _HASHCMP_CACHE:
+        _HASHCMP_CACHE[(str(a), tool)] = a.exists() and a.host.exec0(tool, a).split()[0]
+    if not use_cache or (str(b), tool) not in _HASHCMP_CACHE:
+        _HASHCMP_CACHE[(str(b), tool)] = b.exists() and b.host.exec0(tool, b).split()[0]
 
-    return sum_a == sum_b
+    return _HASHCMP_CACHE[(str(a), tool)] == _HASHCMP_CACHE[(str(b), tool)]
 
 
 # alias for later functions which have a shadowing argument
