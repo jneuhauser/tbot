@@ -98,7 +98,7 @@ def complete_testcase(cur: str) -> Iterable[str]:
 
     module = importlib.import_module(modpath)
     callables = (f for f in dir(module) if callable(getattr(module, f, None)))
-    matching = (modpath + "." + f for f in callables if f.startswith(frag))
+    matching = (modpath + "." + f for f in callables if f.startswith(frag) and not f.startswith('_'))
 
     if path.is_dir():
         matching_mods = complete_module(cur)
